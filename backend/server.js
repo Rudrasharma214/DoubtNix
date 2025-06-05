@@ -13,7 +13,13 @@ const conversationRoutes = require('./routes/conversationRoutes');
 const authRoutes = require('./routes/auth');
 
 const app = express();
-// const __dirname = path.resolve()
+
+// Trust proxy for production deployment (Render, Heroku, etc.)
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+  console.log('✅ Trust proxy enabled for production');
+}
+
 // Security middleware
 app.use(helmet());
 

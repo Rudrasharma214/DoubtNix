@@ -17,15 +17,23 @@ const userSchema = new mongoose.Schema({
   },
   firstName: {
     type: String,
-    required: true,
+    required: function() {
+      // Only require for new documents, not for existing ones
+      return this.isNew;
+    },
     trim: true,
-    maxlength: 50
+    maxlength: 50,
+    default: ''
   },
   lastName: {
     type: String,
-    required: true,
+    required: function() {
+      // Only require for new documents, not for existing ones
+      return this.isNew;
+    },
     trim: true,
-    maxlength: 50
+    maxlength: 50,
+    default: ''
   },
   isEmailVerified: {
     type: Boolean,
