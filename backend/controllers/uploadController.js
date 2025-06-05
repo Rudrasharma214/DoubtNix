@@ -1,48 +1,80 @@
 const Document = require('../models/Document');
 const fileProcessor = require('../utils/fileProcessor');
+const { deleteFile } = require('../config/cloudinary');
+const FileTypeDetector = require('../utils/fileTypeDetector');
 const path = require('path');
-const fs = require('fs').promises;
 
 /**
  * Upload and process a file
  */
 const uploadFile = async (req, res) => {
   try {
+    console.log('📤 Upload request received');
+
+    // Log all request details for debugging
+    console.log('📋 Request details:', {
+      hasFile: !!req.file,
+      fileInfo: req.file ? {
+        filename: req.file.filename,
+        originalname: req.file.originalname,
+        size: req.file.size,
+        path: req.file.path,
+        mimetype: req.file.mimetype,
+        fieldname: req.file.fieldname
+      } : 'No file'
+    });
+
     if (!req.file) {
+      console.log('❌ No file in request');
       return res.status(400).json({
         success: false,
         message: 'No file uploaded'
       });
     }
 
-    const { filename, originalname, mimetype, size, path: filePath } = req.file;
-    
-    // Determine file type
-    const fileExtension = path.extname(originalname).toLowerCase().slice(1);
-    const allowedTypes = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'gif'];
-    
-    if (!allowedTypes.includes(fileExtension)) {
-      // Delete uploaded file if type not allowed
-      await fs.unlink(filePath);
+    const { filename, originalname, size, mimetype } = req.file;
+    const fileUrl = req.file.path; // Cloudinary URL
+    const publicId = req.file.filename; // Cloudinary public ID
+
+    // Robust file type detection
+    const detectedFileType = FileTypeDetector.detectFileType(originalname, mimetype, fileUrl);
+
+    console.log('📋 File details:', {
+      originalname,
+      mimetype,
+      detectedFileType,
+      fileUrl
+    });
+
+    if (!FileTypeDetector.validateFileType(detectedFileType)) {
+      // Delete uploaded file from Cloudinary if type not allowed
+      if (publicId) {
+        await deleteFile(publicId);
+      }
       return res.status(400).json({
         success: false,
         message: 'File type not supported. Allowed types: PDF, DOC, DOCX, JPG, JPEG, PNG, GIF'
       });
     }
 
-    // Create document record
+    // Create document record with Cloudinary URL
     const document = new Document({
       filename,
       originalName: originalname,
-      fileType: fileExtension,
-      filePath,
+      fileType: detectedFileType,
+      fileUrl: fileUrl, // Cloudinary URL for file access
+      cloudinaryPublicId: publicId, // Cloudinary public ID for deletion
       fileSize: size,
+      extractedText: '', // Will be populated after processing
       processingStatus: 'pending'
     });
 
+    console.log('💾 Saving document to database...');
     await document.save();
+    console.log('✅ Document saved with ID:', document._id);
 
-    // Start file processing asynchronously
+    // Start file processing asynchronously to extract text
+    console.log('🔄 Starting text extraction...');
     processFileAsync(document._id);
 
     res.status(201).json({
@@ -59,13 +91,13 @@ const uploadFile = async (req, res) => {
 
   } catch (error) {
     console.error('Upload error:', error);
-    
-    // Clean up uploaded file on error
-    if (req.file && req.file.path) {
+
+    // Clean up uploaded file from Cloudinary on error
+    if (req.file && req.file.filename) {
       try {
-        await fs.unlink(req.file.path);
-      } catch (unlinkError) {
-        console.error('Error deleting file:', unlinkError);
+        await deleteFile(req.file.filename);
+      } catch (deleteError) {
+        console.error('Error deleting file from Cloudinary:', deleteError);
       }
     }
 
@@ -173,11 +205,11 @@ const deleteDocument = async (req, res) => {
       });
     }
 
-    // Delete file from filesystem
+    // Delete file from Cloudinary
     try {
-      await fs.unlink(document.filePath);
+      await deleteFile(document.cloudinaryPublicId);
     } catch (fileError) {
-      console.error('Error deleting file:', fileError);
+      console.error('Error deleting file from Cloudinary:', fileError);
     }
 
     // Delete document from database
@@ -199,33 +231,69 @@ const deleteDocument = async (req, res) => {
 };
 
 /**
- * Process file asynchronously
+ * Process file asynchronously to extract text and store in database
  */
 const processFileAsync = async (documentId) => {
   try {
+    console.log('🔄 Processing document:', documentId);
+
     const document = await Document.findById(documentId);
-    if (!document) return;
+    if (!document) {
+      console.log('❌ Document not found:', documentId);
+      return;
+    }
+
+    console.log('📄 Processing file:', document.originalName);
+    console.log('🔗 File URL:', document.fileUrl);
+    console.log('📋 Stored file type:', document.fileType);
+
+    // Double-check file type from URL as fallback
+    const urlFileType = document.fileUrl.split('.').pop().toLowerCase();
+    const actualFileType = document.fileType || urlFileType;
+
+    console.log('🔍 URL file type:', urlFileType);
+    console.log('✅ Using file type:', actualFileType);
+
+    // Additional debugging
+    console.log('🔬 Debug info:', {
+      originalName: document.originalName,
+      storedFileType: document.fileType,
+      urlFileType: urlFileType,
+      actualFileType: actualFileType,
+      fileUrl: document.fileUrl
+    });
 
     // Update status to processing
     document.processingStatus = 'processing';
     await document.save();
 
-    // Extract text based on file type
+    // Extract text based on file type using Cloudinary URL
     let extractedText = '';
-    
-    if (['pdf'].includes(document.fileType)) {
-      extractedText = await fileProcessor.extractTextFromPDF(document.filePath);
-    } else if (['doc', 'docx'].includes(document.fileType)) {
-      extractedText = await fileProcessor.extractTextFromDoc(document.filePath);
-    } else if (['jpg', 'jpeg', 'png', 'gif'].includes(document.fileType)) {
-      extractedText = await fileProcessor.extractTextFromImage(document.filePath);
+
+    console.log('🔍 Extracting text from', actualFileType, 'file...');
+
+    if (['pdf'].includes(actualFileType)) {
+      extractedText = await fileProcessor.extractTextFromPDFUrl(document.fileUrl);
+    } else if (['doc', 'docx'].includes(actualFileType)) {
+      extractedText = await fileProcessor.extractTextFromDocUrl(document.fileUrl);
+    } else if (['jpg', 'jpeg', 'png', 'gif'].includes(actualFileType)) {
+      extractedText = await fileProcessor.extractTextFromImageUrl(document.fileUrl);
+    } else {
+      console.log('⚠️ Unsupported file type for text extraction:', actualFileType);
+      extractedText = 'Text extraction not supported for this file type.';
     }
 
-    // Update document with extracted text
-    document.extractedText = extractedText;
+    console.log('📝 Extracted text length:', extractedText.length, 'characters');
+
+    // Update document with BOTH Cloudinary URL and extracted text
+    document.extractedText = extractedText; // Store extracted text in DB
+    document.fileType = actualFileType; // Fix file type if it was wrong
     document.processingStatus = 'completed';
     document.processedAt = new Date();
     await document.save();
+
+    console.log('✅ Document processing completed:', documentId);
+    console.log('💾 Stored in DB: URL + extracted text (' + extractedText.length + ' chars)');
 
   } catch (error) {
     console.error('File processing error:', error);

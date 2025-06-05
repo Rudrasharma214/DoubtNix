@@ -14,7 +14,11 @@ const documentSchema = new mongoose.Schema({
     required: true,
     enum: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'gif']
   },
-  filePath: {
+  fileUrl: {
+    type: String,
+    required: true
+  },
+  cloudinaryPublicId: {
     type: String,
     required: true
   },

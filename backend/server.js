@@ -13,7 +13,7 @@ const conversationRoutes = require('./routes/conversationRoutes');
 const authRoutes = require('./routes/auth');
 
 const app = express();
-const __dirname = path.resolve()
+// const __dirname = path.resolve()
 // Security middleware
 app.use(helmet());
 
@@ -40,8 +40,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Logging middleware (disabled for cleaner console output)
 // app.use(morgan('combined'));
 
-// Static files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Note: Static file serving removed - using Cloudinary for file storage
 
 // Routes
 app.use('/api/upload', uploadRoutes);

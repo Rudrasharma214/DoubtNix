@@ -13,6 +13,23 @@ class EmailService {
     }
   }
 
+  /**
+   * Get the frontend URL based on environment
+   */
+  getFrontendUrl() {
+    // Priority: Environment variable > Production default > Development default
+    if (process.env.FRONTEND_URL) {
+      return process.env.FRONTEND_URL;
+    }
+
+    if (process.env.NODE_ENV === 'production') {
+      // Replace with your actual production domain when deploying
+      return 'https://your-app-name.herokuapp.com'; // Update this!
+    }
+
+    return 'http://localhost:3000';
+  }
+
   async initializeTransporter() {
     try {
       // Use Gmail configuration for real email sending
@@ -89,7 +106,8 @@ class EmailService {
   }
 
   async sendVerificationEmail(user, verificationToken) {
-    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+    const frontendUrl = this.getFrontendUrl();
+    const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
     
     const html = `
       <!DOCTYPE html>
@@ -150,7 +168,8 @@ class EmailService {
   }
 
   async sendPasswordResetEmail(user, resetToken) {
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+    const frontendUrl = this.getFrontendUrl();
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
     
     const html = `
       <!DOCTYPE html>
