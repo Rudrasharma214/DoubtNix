@@ -105,7 +105,7 @@ const RegisterPage = () => {
       // Redirect to login page with success message
       navigate('/login', {
         state: {
-          message: 'Registration successful! Please check your email for verification.',
+          message: 'Registration successful!',
         },
       });
     } catch (error) {

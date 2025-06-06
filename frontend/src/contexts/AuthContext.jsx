@@ -7,7 +7,7 @@ const initialState = {
   user: null,
   isAuthenticated: false,
   isLoading: true,
-  isEmailVerified: false,
+  // isEmailVerified removed - users are auto-verified
   is2FAEnabled: false,
   requiresTwoFactor: false,
   requiresEmailOTP: false,
@@ -22,7 +22,7 @@ const AUTH_ACTIONS = {
   LOGIN_EMAIL_OTP_REQUIRED: 'LOGIN_EMAIL_OTP_REQUIRED',
   LOGOUT: 'LOGOUT',
   UPDATE_USER: 'UPDATE_USER',
-  SET_EMAIL_VERIFIED: 'SET_EMAIL_VERIFIED',
+  // SET_EMAIL_VERIFIED removed
   SET_2FA_ENABLED: 'SET_2FA_ENABLED',
   CLEAR_2FA_REQUIREMENT: 'CLEAR_2FA_REQUIREMENT',
 };
@@ -42,7 +42,7 @@ const authReducer = (state, action) => {
         user: action.payload.user,
         isAuthenticated: true,
         isLoading: false,
-        isEmailVerified: action.payload.user.isEmailVerified,
+        // isEmailVerified removed - users are auto-verified
         is2FAEnabled: action.payload.user.twoFactorEnabled,
         requiresTwoFactor: false,
         tempToken: null,
@@ -74,16 +74,11 @@ const authReducer = (state, action) => {
       return {
         ...state,
         user: { ...state.user, ...action.payload },
-        isEmailVerified: action.payload.isEmailVerified ?? state.isEmailVerified,
+        // isEmailVerified removed - users are auto-verified
         is2FAEnabled: action.payload.twoFactorEnabled ?? state.is2FAEnabled,
       };
 
-    case AUTH_ACTIONS.SET_EMAIL_VERIFIED:
-      return {
-        ...state,
-        isEmailVerified: action.payload,
-        user: state.user ? { ...state.user, isEmailVerified: action.payload } : null,
-      };
+    // SET_EMAIL_VERIFIED case removed
 
     case AUTH_ACTIONS.SET_2FA_ENABLED:
       return {
@@ -250,27 +245,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const verifyEmail = async (token) => {
-    try {
-      await authService.verifyEmail(token);
-      
-      dispatch({ type: AUTH_ACTIONS.SET_EMAIL_VERIFIED, payload: true });
-      
-      // Update user in localStorage
-      const user = authUtils.getUser();
-      if (user) {
-        user.isEmailVerified = true;
-        authUtils.setUser(user);
-      }
-      
-      toast.success('Email verified successfully!');
-      return { success: true };
-    } catch (error) {
-      const message = error.response?.data?.message || 'Email verification failed';
-      toast.error(message);
-      throw error;
-    }
-  };
+  // Email verification removed - users are auto-verified on signup
 
   const updateProfile = async (profileData) => {
     try {
@@ -352,7 +327,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     verify2FA,
-    verifyEmail,
+    // verifyEmail removed
     updateProfile,
     enable2FA,
     disable2FA,

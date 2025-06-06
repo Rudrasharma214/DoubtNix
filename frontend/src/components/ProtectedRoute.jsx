@@ -2,16 +2,16 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-const ProtectedRoute = ({ 
-  children, 
-  requireEmailVerification = false,
-  requireAuth = true 
+const ProtectedRoute = ({
+  children,
+  // requireEmailVerification removed - users are auto-verified
+  requireAuth = true
 }) => {
-  const { 
-    isAuthenticated, 
-    isEmailVerified, 
-    isLoading, 
-    requiresTwoFactor 
+  const {
+    isAuthenticated,
+    // isEmailVerified removed
+    isLoading,
+    requiresTwoFactor
   } = useAuth();
   const location = useLocation();
 
@@ -46,29 +46,13 @@ const ProtectedRoute = ({
     );
   }
 
-  // If email verification is required but not verified
-  if (requireEmailVerification && isAuthenticated && !isEmailVerified) {
-    return (
-      <Navigate 
-        to="/verify-email" 
-        state={{ from: location }} 
-        replace 
-      />
-    );
-  }
+  // Email verification removed - users are auto-verified
 
   // If all checks pass, render the protected component
   return children;
 };
 
-// Email verification required route
-export const EmailVerificationRoute = ({ children }) => {
-  return (
-    <ProtectedRoute requireEmailVerification={true}>
-      {children}
-    </ProtectedRoute>
-  );
-};
+// Email verification route removed - users are auto-verified
 
 // Public route (accessible without authentication)
 export const PublicRoute = ({ children, redirectIfAuthenticated = false }) => {

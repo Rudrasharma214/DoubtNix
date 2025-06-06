@@ -113,16 +113,7 @@ export const authService = {
     return response.data;
   },
 
-  // Email verification
-  verifyEmail: async (token) => {
-    const response = await authAPI.post('/verify-email', { token });
-    return response.data;
-  },
-
-  resendVerificationEmail: async (email) => {
-    const response = await authAPI.post('/resend-verification', { email });
-    return response.data;
-  },
+  // Email verification removed - users are auto-verified on signup
 
   // Password reset
   forgotPassword: async (email) => {
@@ -228,11 +219,7 @@ export const authUtils = {
     return !!(token && user);
   },
 
-  // Check if email is verified
-  isEmailVerified: () => {
-    const user = authUtils.getUser();
-    return user?.isEmailVerified || false;
-  },
+  // Email verification removed - users are auto-verified
 
   // Check if 2FA is enabled
   is2FAEnabled: () => {

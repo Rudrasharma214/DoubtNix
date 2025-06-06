@@ -118,10 +118,10 @@ const Layout = ({ children }) => {
 
                   {/* Dropdown Menu */}
                   {isUserMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 border border-gray-200 dark:border-gray-700">
+                    <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 border border-gray-200 dark:border-gray-700">
                       <div className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 border-b border-gray-100 dark:border-gray-700">
-                        <div className="font-medium">{user?.fullName}</div>
-                        <div className="text-gray-500 dark:text-gray-400">{user?.email}</div>
+                        <div className="font-medium break-words">{user?.fullName}</div>
+                        <div className="text-gray-500 dark:text-gray-400 break-all text-xs leading-relaxed">{user?.email}</div>
                       </div>
 
                       <Link
