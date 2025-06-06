@@ -1,4 +1,4 @@
-const crypto = require('crypto');
+// crypto removed - no longer needed for email verification
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 const User = require('../models/User');
@@ -34,40 +34,33 @@ const register = async (req, res) => {
       });
     }
 
-    // Generate email verification token
-    const emailVerificationToken = crypto.randomBytes(32).toString('hex');
-    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
-    // Create user
+    // Create user (no email verification needed)
     const user = new User({
       email,
       password,
       firstName,
-      lastName,
-      emailVerificationToken,
-      emailVerificationExpires
+      lastName
     });
 
     await user.save();
 
-    // Send verification email
+    // Send welcome email (no verification link)
     try {
-      await emailService.sendVerificationEmail(user, emailVerificationToken);
+      await emailService.sendWelcomeEmail(user);
     } catch (emailError) {
-      console.error('Failed to send verification email:', emailError);
+      console.error('Failed to send welcome email:', emailError);
       // Don't fail registration if email fails
     }
 
     res.status(201).json({
       success: true,
-      message: 'User registered successfully. Please check your email for verification.',
+      message: 'Account created successfully! Welcome to AI Doubt Solver. You can now log in.',
       data: {
         user: {
           id: user._id,
           email: user.email,
           firstName: user.firstName,
-          lastName: user.lastName,
-          isEmailVerified: user.isEmailVerified
+          lastName: user.lastName
         }
       }
     });
@@ -85,15 +78,15 @@ const login = async (req, res) => {
   try {
     const { email, password, emailOTP, twoFactorCode } = req.body;
 
-    console.log('🔐 Login request received:', {
-      email: email || 'missing',
-      hasPassword: !!password,
-      hasEmailOTP: !!emailOTP,
-      hasTwoFactorCode: !!twoFactorCode
-    });
+    // console.log('🔐 Login request received:', {
+    //   email: email || 'missing',
+    //   hasPassword: !!password,
+    //   hasEmailOTP: !!emailOTP,
+    //   hasTwoFactorCode: !!twoFactorCode
+    // });
 
     if (!email || !password) {
-      console.log('❌ Missing email or password');
+      // console.log('❌ Missing email or password');
       return res.status(400).json({
         success: false,
         message: 'Email and password are required'
@@ -140,7 +133,7 @@ const login = async (req, res) => {
         console.error('Failed to send login OTP:', emailError);
         // In development, still proceed but log the OTP
         if (process.env.NODE_ENV !== 'production') {
-          console.log(`🔐 LOGIN OTP for ${user.email}: ${otp}`);
+          // console.log(`🔐 LOGIN OTP for ${user.email}: ${otp}`);
         } else {
           return res.status(500).json({
             success: false,
@@ -235,90 +228,7 @@ const login = async (req, res) => {
   }
 };
 
-// Verify email
-const verifyEmail = async (req, res) => {
-  try {
-    const { token } = req.body;
-
-    if (!token) {
-      return res.status(400).json({
-        success: false,
-        message: 'Verification token is required'
-      });
-    }
-
-    const user = await User.findOne({
-      emailVerificationToken: token,
-      emailVerificationExpires: { $gt: Date.now() }
-    });
-
-    if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid or expired verification token'
-      });
-    }
-
-    user.isEmailVerified = true;
-    user.emailVerificationToken = null;
-    user.emailVerificationExpires = null;
-    await user.save();
-
-    res.json({
-      success: true,
-      message: 'Email verified successfully'
-    });
-  } catch (error) {
-    console.error('Email verification error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Email verification failed'
-    });
-  }
-};
-
-// Resend verification email
-const resendVerificationEmail = async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    const user = await User.findByEmail(email);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    if (user.isEmailVerified) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email is already verified'
-      });
-    }
-
-    // Generate new verification token
-    const emailVerificationToken = crypto.randomBytes(32).toString('hex');
-    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-    user.emailVerificationToken = emailVerificationToken;
-    user.emailVerificationExpires = emailVerificationExpires;
-    await user.save();
-
-    await emailService.sendVerificationEmail(user, emailVerificationToken);
-
-    res.json({
-      success: true,
-      message: 'Verification email sent successfully'
-    });
-  } catch (error) {
-    console.error('Resend verification error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to resend verification email'
-    });
-  }
-};
+// Email verification removed - users are auto-verified on signup
 
 // Forgot password
 const forgotPassword = async (req, res) => {
@@ -357,7 +267,7 @@ const forgotPassword = async (req, res) => {
         }
       });
     } catch (error) {
-      console.error('Email sending failed:', error);
+      // console.error('Email sending failed:', error);
       // In development, still proceed but log the OTP
       if (process.env.NODE_ENV !== 'production') {
         console.log(`🔐 PASSWORD RESET OTP for ${user.email}: ${otp}`);
@@ -376,7 +286,7 @@ const forgotPassword = async (req, res) => {
       }
     }
   } catch (error) {
-    console.error('Forgot password error:', error);
+    // console.error('Forgot password error:', error);
     res.status(500).json({
       success: false,
       message: 'Password reset failed'
@@ -430,7 +340,7 @@ const resetPassword = async (req, res) => {
       message: 'Password reset successfully'
     });
   } catch (error) {
-    console.error('Reset password error:', error);
+    // console.error('Reset password error:', error);
     res.status(500).json({
       success: false,
       message: 'Password reset failed'
@@ -471,7 +381,7 @@ const refreshToken = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Refresh token error:', error);
+    // console.error('Refresh token error:', error);
     res.status(401).json({
       success: false,
       message: 'Invalid refresh token'
@@ -507,7 +417,7 @@ const resendLoginOTP = async (req, res) => {
     try {
       await emailService.sendLoginOTP(user, otp);
     } catch (emailError) {
-      console.error('Failed to send login OTP:', emailError);
+      // console.error('Failed to send login OTP:', emailError);
       return res.status(500).json({
         success: false,
         message: 'Failed to send verification code. Please try again.'
@@ -519,7 +429,7 @@ const resendLoginOTP = async (req, res) => {
       message: 'If an account with that email exists, a new verification code has been sent.'
     });
   } catch (error) {
-    console.error('Resend login OTP error:', error);
+    // console.error('Resend login OTP error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to resend verification code'
@@ -574,7 +484,7 @@ const changePassword = async (req, res) => {
       message: 'Password changed successfully'
     });
   } catch (error) {
-    console.error('Change password error:', error);
+    // console.error('Change password error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to change password'
@@ -613,7 +523,7 @@ const getProfile = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get profile error:', error);
+    // console.error('Get profile error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get profile'
@@ -659,7 +569,7 @@ const updateProfile = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Update profile error:', error);
+    // console.error('Update profile error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update profile'
@@ -714,7 +624,7 @@ const setup2FA = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Setup 2FA error:', error);
+    // console.error('Setup 2FA error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to setup 2FA'
@@ -779,7 +689,7 @@ const enable2FA = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Enable 2FA error:', error);
+    // console.error('Enable 2FA error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to enable 2FA'
@@ -843,7 +753,7 @@ const disable2FA = async (req, res) => {
       message: '2FA disabled successfully'
     });
   } catch (error) {
-    console.error('Disable 2FA error:', error);
+    // console.error('Disable 2FA error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to disable 2FA'
@@ -904,7 +814,7 @@ const generateBackupCodes = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Generate backup codes error:', error);
+    // console.error('Generate backup codes error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to generate backup codes'
@@ -939,12 +849,12 @@ const resendPasswordResetOTP = async (req, res) => {
 
     try {
       await emailService.sendPasswordResetOTP(user, otp);
-      console.log(`🔐 PASSWORD RESET OTP for ${user.email}: ${otp}`); // Log OTP for development
+      // console.log(`🔐 PASSWORD RESET OTP for ${user.email}: ${otp}`); // Log OTP for development
     } catch (emailError) {
-      console.error('Failed to send password reset OTP:', emailError);
+      // console.error('Failed to send password reset OTP:', emailError);
       // In development, still proceed but log the OTP
       if (process.env.NODE_ENV !== 'production') {
-        console.log(`🔐 PASSWORD RESET OTP for ${user.email}: ${otp}`);
+        // console.log(`🔐 PASSWORD RESET OTP for ${user.email}: ${otp}`);
       } else {
         return res.status(500).json({
           success: false,
@@ -958,7 +868,7 @@ const resendPasswordResetOTP = async (req, res) => {
       message: 'If an account with that email exists, a new verification code has been sent.'
     });
   } catch (error) {
-    console.error('Resend password reset OTP error:', error);
+    // console.error('Resend password reset OTP error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to resend verification code'
@@ -969,8 +879,7 @@ const resendPasswordResetOTP = async (req, res) => {
 module.exports = {
   register,
   login,
-  verifyEmail,
-  resendVerificationEmail,
+  // verifyEmail and resendVerificationEmail removed
   forgotPassword,
   resetPassword,
   refreshToken,

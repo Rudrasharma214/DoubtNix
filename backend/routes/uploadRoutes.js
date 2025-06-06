@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const uploadController = require('../controllers/uploadController');
 const uploadMiddleware = require('../middleware/uploadMiddleware');
+const { authenticate } = require('../middleware/auth');
 
-// Upload file with error handling
-router.post('/', (req, res, next) => {
+// Upload file with authentication and error handling
+router.post('/', authenticate, (req, res, next) => {
   console.log('📤 Upload route hit');
   console.log('📋 Request info:', {
     contentType: req.headers['content-type'],
@@ -60,13 +61,13 @@ router.post('/', (req, res, next) => {
   });
 }, uploadController.uploadFile);
 
-// Get document processing status
-router.get('/status/:documentId', uploadController.getDocumentStatus);
+// Get document processing status (requires authentication)
+router.get('/status/:documentId', authenticate, uploadController.getDocumentStatus);
 
-// Get all documents
-router.get('/documents', uploadController.getDocuments);
+// Get user's documents (requires authentication)
+router.get('/documents', authenticate, uploadController.getDocuments);
 
-// Delete document
-router.delete('/documents/:documentId', uploadController.deleteDocument);
+// Delete document (requires authentication)
+router.delete('/documents/:documentId', authenticate, uploadController.deleteDocument);
 
 module.exports = router;

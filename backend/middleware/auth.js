@@ -78,7 +78,7 @@ const authenticate = async (req, res, next) => {
       }
     }
   } catch (error) {
-    console.error('Authentication error:', error);
+    // console.error('Authentication error:', error);
     res.status(500).json({
       success: false,
       message: 'Authentication failed'
@@ -119,17 +119,7 @@ const optionalAuth = async (req, res, next) => {
   }
 };
 
-// Email verification required middleware
-const requireEmailVerification = (req, res, next) => {
-  if (!req.user.isEmailVerified) {
-    return res.status(403).json({
-      success: false,
-      message: 'Email verification required',
-      code: 'EMAIL_NOT_VERIFIED'
-    });
-  }
-  next();
-};
+// Email verification removed - users are auto-verified on signup
 
 // 2FA verification middleware
 const require2FA = (req, res, next) => {
@@ -160,7 +150,7 @@ module.exports = {
   verifyToken,
   authenticate,
   optionalAuth,
-  requireEmailVerification,
+  // requireEmailVerification removed
   require2FA,
   requireAdmin
 };

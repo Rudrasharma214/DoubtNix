@@ -35,26 +35,8 @@ const userSchema = new mongoose.Schema({
     maxlength: 50,
     default: ''
   },
-  isEmailVerified: {
-    type: Boolean,
-    default: false
-  },
-  emailVerificationToken: {
-    type: String,
-    default: null
-  },
-  emailVerificationExpires: {
-    type: Date,
-    default: null
-  },
-  passwordResetToken: {
-    type: String,
-    default: null
-  },
-  passwordResetExpires: {
-    type: Date,
-    default: null
-  },
+  // Email verification removed - users are auto-verified on signup
+  // Password reset token removed - using OTP-based reset instead
   // Email OTP for login verification
   emailOTP: {
     type: String,
@@ -311,8 +293,6 @@ userSchema.set('toJSON', {
   transform: function(doc, ret) {
     delete ret.password;
     delete ret.twoFactorSecret;
-    delete ret.emailVerificationToken;
-    delete ret.passwordResetToken;
     delete ret.__v;
     return ret;
   }

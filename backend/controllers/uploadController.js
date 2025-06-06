@@ -9,23 +9,23 @@ const path = require('path');
  */
 const uploadFile = async (req, res) => {
   try {
-    console.log('📤 Upload request received');
+    // console.log('📤 Upload request received');
 
     // Log all request details for debugging
-    console.log('📋 Request details:', {
-      hasFile: !!req.file,
-      fileInfo: req.file ? {
-        filename: req.file.filename,
-        originalname: req.file.originalname,
-        size: req.file.size,
-        path: req.file.path,
-        mimetype: req.file.mimetype,
-        fieldname: req.file.fieldname
-      } : 'No file'
-    });
+    // console.log('📋 Request details:', {
+    //   hasFile: !!req.file,
+    //   fileInfo: req.file ? {
+    //     filename: req.file.filename,
+    //     originalname: req.file.originalname,
+    //     size: req.file.size,
+    //     path: req.file.path,
+    //     mimetype: req.file.mimetype,
+    //     fieldname: req.file.fieldname
+    //   } : 'No file'
+    // });
 
     if (!req.file) {
-      console.log('❌ No file in request');
+      // console.log('❌ No file in request');
       return res.status(400).json({
         success: false,
         message: 'No file uploaded'
@@ -39,12 +39,12 @@ const uploadFile = async (req, res) => {
     // Robust file type detection
     const detectedFileType = FileTypeDetector.detectFileType(originalname, mimetype, fileUrl);
 
-    console.log('📋 File details:', {
-      originalname,
-      mimetype,
-      detectedFileType,
-      fileUrl
-    });
+    // console.log('📋 File details:', {
+    //   originalname,
+    //   mimetype,
+    //   detectedFileType,
+    //   fileUrl
+    // });
 
     if (!FileTypeDetector.validateFileType(detectedFileType)) {
       // Delete uploaded file from Cloudinary if type not allowed
@@ -57,8 +57,9 @@ const uploadFile = async (req, res) => {
       });
     }
 
-    // Create document record with Cloudinary URL
+    // Create document record with Cloudinary URL and user association
     const document = new Document({
+      userId: req.user.id, // Associate document with the logged-in user
       filename,
       originalName: originalname,
       fileType: detectedFileType,
@@ -69,12 +70,12 @@ const uploadFile = async (req, res) => {
       processingStatus: 'pending'
     });
 
-    console.log('💾 Saving document to database...');
+    // console.log('💾 Saving document to database...');
     await document.save();
-    console.log('✅ Document saved with ID:', document._id);
+    // console.log('✅ Document saved with ID:', document._id);
 
     // Start file processing asynchronously to extract text
-    console.log('🔄 Starting text extraction...');
+    // console.log('🔄 Starting text extraction...');
     processFileAsync(document._id);
 
     res.status(201).json({
@@ -90,14 +91,14 @@ const uploadFile = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Upload error:', error);
+    // console.error('Upload error:', error);
 
     // Clean up uploaded file from Cloudinary on error
     if (req.file && req.file.filename) {
       try {
         await deleteFile(req.file.filename);
       } catch (deleteError) {
-        console.error('Error deleting file from Cloudinary:', deleteError);
+        // console.error('Error deleting file from Cloudinary:', deleteError);
       }
     }
 
@@ -116,12 +117,16 @@ const getDocumentStatus = async (req, res) => {
   try {
     const { documentId } = req.params;
 
-    const document = await Document.findById(documentId);
+    // Only get document if it belongs to the authenticated user
+    const document = await Document.findOne({
+      _id: documentId,
+      userId: req.user.id
+    });
     
     if (!document) {
       return res.status(404).json({
         success: false,
-        message: 'Document not found'
+        message: 'Document not found or access denied'
       });
     }
 
@@ -140,7 +145,7 @@ const getDocumentStatus = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get document status error:', error);
+    // console.error('Get document status error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get document status',
@@ -150,21 +155,26 @@ const getDocumentStatus = async (req, res) => {
 };
 
 /**
- * Get all uploaded documents
+ * Get user's uploaded documents only
  */
 const getDocuments = async (req, res) => {
   try {
+    // console.log('📄 Fetching documents for user:', req.user.id);
+
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const documents = await Document.find()
+    // Only get documents belonging to the authenticated user
+    const documents = await Document.find({ userId: req.user.id })
       .sort({ uploadedAt: -1 })
       .skip(skip)
       .limit(limit)
       .select('-extractedText'); // Exclude large text field
 
-    const total = await Document.countDocuments();
+    const total = await Document.countDocuments({ userId: req.user.id });
+
+    // console.log(`✅ Found ${documents.length} documents for user (total: ${total})`);
 
     res.json({
       success: true,
@@ -180,7 +190,7 @@ const getDocuments = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get documents error:', error);
+    // console.error('Get documents error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get documents',
@@ -196,7 +206,11 @@ const deleteDocument = async (req, res) => {
   try {
     const { documentId } = req.params;
 
-    const document = await Document.findById(documentId);
+    // Only delete document if it belongs to the authenticated user
+    const document = await Document.findOne({
+      _id: documentId,
+      userId: req.user.id
+    });
     
     if (!document) {
       return res.status(404).json({
@@ -209,7 +223,7 @@ const deleteDocument = async (req, res) => {
     try {
       await deleteFile(document.cloudinaryPublicId);
     } catch (fileError) {
-      console.error('Error deleting file from Cloudinary:', fileError);
+      // console.error('Error deleting file from Cloudinary:', fileError);
     }
 
     // Delete document from database
@@ -221,7 +235,7 @@ const deleteDocument = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Delete document error:', error);
+    // console.error('Delete document error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to delete document',
@@ -235,33 +249,33 @@ const deleteDocument = async (req, res) => {
  */
 const processFileAsync = async (documentId) => {
   try {
-    console.log('🔄 Processing document:', documentId);
+    // console.log('🔄 Processing document:', documentId);
 
     const document = await Document.findById(documentId);
     if (!document) {
-      console.log('❌ Document not found:', documentId);
+      // console.log('❌ Document not found:', documentId);
       return;
     }
 
-    console.log('📄 Processing file:', document.originalName);
-    console.log('🔗 File URL:', document.fileUrl);
-    console.log('📋 Stored file type:', document.fileType);
+    // console.log('📄 Processing file:', document.originalName);
+    // console.log('🔗 File URL:', document.fileUrl);
+    // console.log('📋 Stored file type:', document.fileType);
 
     // Double-check file type from URL as fallback
     const urlFileType = document.fileUrl.split('.').pop().toLowerCase();
     const actualFileType = document.fileType || urlFileType;
 
-    console.log('🔍 URL file type:', urlFileType);
-    console.log('✅ Using file type:', actualFileType);
+    // console.log('🔍 URL file type:', urlFileType);
+    // console.log('✅ Using file type:', actualFileType);
 
     // Additional debugging
-    console.log('🔬 Debug info:', {
-      originalName: document.originalName,
-      storedFileType: document.fileType,
-      urlFileType: urlFileType,
-      actualFileType: actualFileType,
-      fileUrl: document.fileUrl
-    });
+    // console.log('🔬 Debug info:', {
+    //   originalName: document.originalName,
+    //   storedFileType: document.fileType,
+    //   urlFileType: urlFileType,
+    //   actualFileType: actualFileType,
+    //   fileUrl: document.fileUrl
+    // });
 
     // Update status to processing
     document.processingStatus = 'processing';
@@ -270,7 +284,7 @@ const processFileAsync = async (documentId) => {
     // Extract text based on file type using Cloudinary URL
     let extractedText = '';
 
-    console.log('🔍 Extracting text from', actualFileType, 'file...');
+    // console.log('🔍 Extracting text from', actualFileType, 'file...');
 
     if (['pdf'].includes(actualFileType)) {
       extractedText = await fileProcessor.extractTextFromPDFUrl(document.fileUrl);
@@ -279,11 +293,11 @@ const processFileAsync = async (documentId) => {
     } else if (['jpg', 'jpeg', 'png', 'gif'].includes(actualFileType)) {
       extractedText = await fileProcessor.extractTextFromImageUrl(document.fileUrl);
     } else {
-      console.log('⚠️ Unsupported file type for text extraction:', actualFileType);
+      // console.log('⚠️ Unsupported file type for text extraction:', actualFileType);
       extractedText = 'Text extraction not supported for this file type.';
     }
 
-    console.log('📝 Extracted text length:', extractedText.length, 'characters');
+    // console.log('📝 Extracted text length:', extractedText.length, 'characters');
 
     // Update document with BOTH Cloudinary URL and extracted text
     document.extractedText = extractedText; // Store extracted text in DB
@@ -292,11 +306,11 @@ const processFileAsync = async (documentId) => {
     document.processedAt = new Date();
     await document.save();
 
-    console.log('✅ Document processing completed:', documentId);
-    console.log('💾 Stored in DB: URL + extracted text (' + extractedText.length + ' chars)');
+    // console.log('✅ Document processing completed:', documentId);
+    // console.log('💾 Stored in DB: URL + extracted text (' + extractedText.length + ' chars)');
 
   } catch (error) {
-    console.error('File processing error:', error);
+    // console.error('File processing error:', error);
     
     // Update document with error status
     try {
@@ -305,7 +319,7 @@ const processFileAsync = async (documentId) => {
         processingError: error.message
       });
     } catch (updateError) {
-      console.error('Error updating document status:', updateError);
+      // console.error('Error updating document status:', updateError);
     }
   }
 };

@@ -22,12 +22,15 @@ const askDoubt = async (req, res) => {
 
     const { documentId, question, sessionId, language = 'english' } = req.body;
 
-    // Find the document
-    const document = await Document.findById(documentId);
+    // Find the document (only if it belongs to the user)
+    const document = await Document.findOne({
+      _id: documentId,
+      userId: req.user.id
+    });
     if (!document) {
       return res.status(404).json({
         success: false,
-        message: 'Document not found'
+        message: 'Document not found or access denied'
       });
     }
 
@@ -90,7 +93,7 @@ const askDoubt = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Ask doubt error:', error);
+    // console.error('Ask doubt error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to process your question',
@@ -135,7 +138,7 @@ const getConversationHistory = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get conversation history error:', error);
+    // console.error('Get conversation history error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get conversation history',
@@ -154,12 +157,15 @@ const getDocumentConversations = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Check if document exists
-    const document = await Document.findById(documentId);
+    // Check if document exists and belongs to user
+    const document = await Document.findOne({
+      _id: documentId,
+      userId: req.user.id
+    });
     if (!document) {
       return res.status(404).json({
         success: false,
-        message: 'Document not found'
+        message: 'Document not found or access denied'
       });
     }
 
@@ -202,7 +208,7 @@ const getDocumentConversations = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get document conversations error:', error);
+    // console.error('Get document conversations error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get conversations',
@@ -236,7 +242,7 @@ const clearConversation = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Clear conversation error:', error);
+    // console.error('Clear conversation error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to clear conversation',
@@ -252,11 +258,14 @@ const getSuggestedQuestions = async (req, res) => {
   try {
     const { documentId } = req.params;
 
-    const document = await Document.findById(documentId);
+    const document = await Document.findOne({
+      _id: documentId,
+      userId: req.user.id
+    });
     if (!document) {
       return res.status(404).json({
         success: false,
-        message: 'Document not found'
+        message: 'Document not found or access denied'
       });
     }
 
@@ -279,7 +288,7 @@ const getSuggestedQuestions = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get suggested questions error:', error);
+    // console.error('Get suggested questions error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to generate suggested questions',

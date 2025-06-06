@@ -2,22 +2,39 @@ const Conversation = require('../models/Conversation');
 const Document = require('../models/Document');
 
 /**
- * Get all conversations across all documents
+ * Get user's conversations only (filtered by document ownership)
  */
 const getAllConversations = async (req, res) => {
   try {
+    // console.log('📄 Fetching conversations for user:', req.user.id);
+
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const conversations = await Conversation.find({ isActive: true })
+    // First, get user's documents
+    const userDocuments = await Document.find({ userId: req.user.id }).select('_id');
+    const userDocumentIds = userDocuments.map(doc => doc._id);
+
+    // console.log(`📄 User has ${userDocumentIds.length} documents`);
+
+    // Then get conversations for those documents only
+    const conversations = await Conversation.find({
+      isActive: true,
+      documentId: { $in: userDocumentIds }
+    })
       .populate('documentId', 'originalName fileType uploadedAt')
       .sort({ lastActivity: -1 })
       .skip(skip)
       .limit(limit)
       .select('sessionId title lastActivity messages documentId');
 
-    const total = await Conversation.countDocuments({ isActive: true });
+    const total = await Conversation.countDocuments({
+      isActive: true,
+      documentId: { $in: userDocumentIds }
+    });
+
+    // console.log(`✅ Found ${conversations.length} conversations for user (total: ${total})`);
 
     // Add message count and last message preview
     const conversationsWithDetails = conversations.map(conv => {
@@ -49,7 +66,7 @@ const getAllConversations = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get all conversations error:', error);
+    // console.error('Get all conversations error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get conversations',
@@ -59,19 +76,27 @@ const getAllConversations = async (req, res) => {
 };
 
 /**
- * Get conversation by ID
+ * Get conversation by ID (only if user owns the document)
  */
 const getConversationById = async (req, res) => {
   try {
     const { conversationId } = req.params;
 
     const conversation = await Conversation.findById(conversationId)
-      .populate('documentId', 'originalName fileType uploadedAt extractedText');
+      .populate('documentId', 'originalName fileType uploadedAt extractedText userId');
 
     if (!conversation || !conversation.isActive) {
       return res.status(404).json({
         success: false,
         message: 'Conversation not found'
+      });
+    }
+
+    // Check if the document belongs to the current user
+    if (conversation.documentId.userId.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied - conversation not found'
       });
     }
 
@@ -96,7 +121,7 @@ const getConversationById = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get conversation by ID error:', error);
+    // console.error('Get conversation by ID error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get conversation',
@@ -120,11 +145,21 @@ const updateConversationTitle = async (req, res) => {
       });
     }
 
-    const conversation = await Conversation.findById(conversationId);
+    const conversation = await Conversation.findById(conversationId)
+      .populate('documentId', 'userId');
+
     if (!conversation || !conversation.isActive) {
       return res.status(404).json({
         success: false,
         message: 'Conversation not found'
+      });
+    }
+
+    // Check if the document belongs to the current user
+    if (conversation.documentId.userId.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied - conversation not found'
       });
     }
 
@@ -141,7 +176,7 @@ const updateConversationTitle = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Update conversation title error:', error);
+    // console.error('Update conversation title error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update conversation title',
@@ -157,11 +192,21 @@ const deleteConversation = async (req, res) => {
   try {
     const { conversationId } = req.params;
 
-    const conversation = await Conversation.findById(conversationId);
+    const conversation = await Conversation.findById(conversationId)
+      .populate('documentId', 'userId');
+
     if (!conversation) {
       return res.status(404).json({
         success: false,
         message: 'Conversation not found'
+      });
+    }
+
+    // Check if the document belongs to the current user
+    if (conversation.documentId.userId.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied - conversation not found'
       });
     }
 
@@ -175,7 +220,7 @@ const deleteConversation = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Delete conversation error:', error);
+    // console.error('Delete conversation error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to delete conversation',
@@ -201,11 +246,16 @@ const searchConversations = async (req, res) => {
       });
     }
 
-    // Search in conversation titles and message content
+    // Get user's documents first
+    const userDocuments = await Document.find({ userId: req.user.id }).select('_id');
+    const userDocumentIds = userDocuments.map(doc => doc._id);
+
+    // Search in conversation titles and message content (only user's conversations)
     const searchRegex = new RegExp(query.trim(), 'i');
-    
+
     const conversations = await Conversation.find({
       isActive: true,
+      documentId: { $in: userDocumentIds },
       $or: [
         { title: searchRegex },
         { 'messages.content': searchRegex }
@@ -219,6 +269,7 @@ const searchConversations = async (req, res) => {
 
     const total = await Conversation.countDocuments({
       isActive: true,
+      documentId: { $in: userDocumentIds },
       $or: [
         { title: searchRegex },
         { 'messages.content': searchRegex }
@@ -259,7 +310,7 @@ const searchConversations = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Search conversations error:', error);
+    // console.error('Search conversations error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to search conversations',
@@ -269,12 +320,19 @@ const searchConversations = async (req, res) => {
 };
 
 /**
- * Get conversation statistics
+ * Get user's conversation statistics only
  */
 const getConversationStats = async (req, res) => {
   try {
-    const totalConversations = await Conversation.countDocuments({ isActive: true });
-    const totalDocuments = await Document.countDocuments();
+    // Get user's documents first
+    const userDocuments = await Document.find({ userId: req.user.id }).select('_id');
+    const userDocumentIds = userDocuments.map(doc => doc._id);
+
+    const totalConversations = await Conversation.countDocuments({
+      isActive: true,
+      documentId: { $in: userDocumentIds }
+    });
+    const totalDocuments = userDocuments.length;
     
     // Get conversations from last 7 days
     const weekAgo = new Date();
@@ -282,12 +340,16 @@ const getConversationStats = async (req, res) => {
     
     const recentConversations = await Conversation.countDocuments({
       isActive: true,
+      documentId: { $in: userDocumentIds },
       lastActivity: { $gte: weekAgo }
     });
 
-    // Get most active documents
+    // Get most active documents (user's documents only)
     const activeDocuments = await Conversation.aggregate([
-      { $match: { isActive: true } },
+      { $match: {
+        isActive: true,
+        documentId: { $in: userDocumentIds }
+      }},
       { $group: { 
         _id: '$documentId', 
         conversationCount: { $sum: 1 },
@@ -321,7 +383,7 @@ const getConversationStats = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get conversation stats error:', error);
+    // console.error('Get conversation stats error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get conversation statistics',

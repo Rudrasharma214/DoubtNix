@@ -150,7 +150,7 @@ Please provide a response that directly addresses the user's question:`;
       return await this.makeRequest(prompt);
 
     } catch (error) {
-      console.error('Gemini API error:', error);
+      // console.error('Gemini API error:', error);
 
       // Provide a helpful fallback response when API is unavailable
       if (error.message.includes('503') || error.message.includes('overloaded')) {

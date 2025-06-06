@@ -32,8 +32,7 @@ const strictAuthLimiter = rateLimit({
 // Public routes
 router.post('/register', authLimiter, authController.register);
 router.post('/login', authLimiter, authController.login);
-router.post('/verify-email', authController.verifyEmail);
-router.post('/resend-verification', authLimiter, authController.resendVerificationEmail);
+// Email verification removed - users are auto-verified on signup
 router.post('/forgot-password', strictAuthLimiter, authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);
 router.post('/refresh-token', authController.refreshToken);

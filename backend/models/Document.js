@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const documentSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   filename: {
     type: String,
     required: true
@@ -52,6 +57,8 @@ const documentSchema = new mongoose.Schema({
 });
 
 // Index for faster queries
+documentSchema.index({ userId: 1, uploadedAt: -1 }); // User's documents by upload date
+documentSchema.index({ userId: 1, processingStatus: 1 }); // User's documents by status
 documentSchema.index({ uploadedAt: -1 });
 documentSchema.index({ processingStatus: 1 });
 

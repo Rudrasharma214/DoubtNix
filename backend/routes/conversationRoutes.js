@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const conversationController = require('../controllers/conversationController');
+const { authenticate } = require('../middleware/auth');
 
 // Validation middleware for updating conversation title
 const validateTitleUpdate = [
@@ -12,22 +13,22 @@ const validateTitleUpdate = [
     .withMessage('Title must be between 1 and 200 characters')
 ];
 
-// Get all conversations
-router.get('/', conversationController.getAllConversations);
+// Get user's conversations (requires authentication)
+router.get('/', authenticate, conversationController.getAllConversations);
 
-// Get conversation by ID
-router.get('/:conversationId', conversationController.getConversationById);
+// Get conversation by ID (requires authentication)
+router.get('/:conversationId', authenticate, conversationController.getConversationById);
 
-// Update conversation title
-router.put('/:conversationId/title', validateTitleUpdate, conversationController.updateConversationTitle);
+// Update conversation title (requires authentication)
+router.put('/:conversationId/title', authenticate, validateTitleUpdate, conversationController.updateConversationTitle);
 
-// Delete conversation
-router.delete('/:conversationId', conversationController.deleteConversation);
+// Delete conversation (requires authentication)
+router.delete('/:conversationId', authenticate, conversationController.deleteConversation);
 
-// Search conversations
-router.get('/search/query', conversationController.searchConversations);
+// Search conversations (requires authentication)
+router.get('/search/query', authenticate, conversationController.searchConversations);
 
-// Get conversation statistics
-router.get('/stats/overview', conversationController.getConversationStats);
+// Get conversation statistics (requires authentication)
+router.get('/stats/overview', authenticate, conversationController.getConversationStats);
 
 module.exports = router;

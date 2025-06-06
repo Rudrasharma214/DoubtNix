@@ -46,10 +46,10 @@ class EmailService {
       // console.log('✅ Gmail email service connected successfully');
 
     } catch (error) {
-      console.error('Failed to connect to Gmail:', error);
+      // console.error('Failed to connect to Gmail:', error);
 
       // Fallback to console logging for development
-      console.log('📧 Using console fallback for email delivery');
+      // console.log('📧 Using console fallback for email delivery');
       this.transporter = null;
     }
 
@@ -62,12 +62,12 @@ class EmailService {
 
       // If no transporter available (development fallback), log to console
       if (!this.transporter) {
-        console.log('\n📧 EMAIL SIMULATION (Development Mode)');
-        console.log('=====================================');
-        console.log(`To: ${to}`);
-        console.log(`Subject: ${subject}`);
-        console.log(`Content: ${text}`);
-        console.log('=====================================\n');
+        // console.log('\n📧 EMAIL SIMULATION (Development Mode)');
+        // console.log('=====================================');
+        // console.log(`To: ${to}`);
+        // console.log(`Subject: ${subject}`);
+        // console.log(`Content: ${text}`);
+        // console.log('=====================================\n');
         return { messageId: 'simulated-' + Date.now() };
       }
 
@@ -82,22 +82,22 @@ class EmailService {
       const result = await this.transporter.sendMail(mailOptions);
 
       if (process.env.NODE_ENV !== 'production') {
-        console.log('📧 Email sent successfully!');
-        console.log('Preview URL: %s', nodemailer.getTestMessageUrl(result));
+        // console.log('📧 Email sent successfully!');
+        // console.log('Preview URL: %s', nodemailer.getTestMessageUrl(result));
       }
 
       return result;
     } catch (error) {
-      console.error('Email sending failed:', error);
+      // console.error('Email sending failed:', error);
 
       // In development, don't fail - just log the email content
       if (process.env.NODE_ENV !== 'production') {
-        console.log('\n📧 EMAIL FALLBACK (Development Mode)');
-        console.log('====================================');
-        console.log(`To: ${to}`);
-        console.log(`Subject: ${subject}`);
-        console.log(`Content: ${text}`);
-        console.log('====================================\n');
+        // console.log('\n📧 EMAIL FALLBACK (Development Mode)');
+        // console.log('====================================');
+        // console.log(`To: ${to}`);
+        // console.log(`Subject: ${subject}`);
+        // console.log(`Content: ${text}`);
+        // console.log('====================================\n');
         return { messageId: 'fallback-' + Date.now() };
       }
 
@@ -105,41 +105,53 @@ class EmailService {
     }
   }
 
-  async sendVerificationEmail(user, verificationToken) {
-    const frontendUrl = this.getFrontendUrl();
-    const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
-    
+  async sendWelcomeEmail(user) {
     const html = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Verify Your Email</title>
+        <title>Welcome to DoubtNix!</title>
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
           .header { background: #3B82F6; color: white; padding: 20px; text-align: center; }
           .content { padding: 20px; background: #f9f9f9; }
-          .button { display: inline-block; background: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .feature { background: #f0f8ff; border-left: 4px solid #3B82F6; padding: 15px; margin: 15px 0; }
           .footer { padding: 20px; text-align: center; color: #666; font-size: 14px; }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <h1>Welcome to AI Doubt Solver!</h1>
+            <h1>🎉 Welcome to DoubtNix!</h1>
           </div>
           <div class="content">
             <h2>Hi ${user.firstName},</h2>
-            <p>Thank you for signing up for AI Doubt Solver! To complete your registration, please verify your email address by clicking the button below:</p>
-            <a href="${verificationUrl}" class="button">Verify Email Address</a>
-            <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
-            <p><a href="${verificationUrl}">${verificationUrl}</a></p>
-            <p>This verification link will expire in 24 hours.</p>
-            <p>If you didn't create an account with us, please ignore this email.</p>
+            <p>Welcome to DoubtNix! We're excited to have you on board. 🚀</p>
+
+            <p>Your account has been successfully created and you can now start using our AI-powered platform to solve your doubts instantly!</p>
+
+            <div class="feature">
+              <h3>🤖 What you can do:</h3>
+              <ul>
+                <li>📄 Upload PDF, DOCX, and image files</li>
+                <li>❓ Ask questions about your documents</li>
+                <li>💬 Get instant AI-powered answers</li>
+                <li>📚 Manage your conversation history</li>
+                <li>🔒 Secure 2FA authentication</li>
+              </ul>
+            </div>
+
+            <p>Ready to get started? Simply log in to your account and upload your first document!</p>
+
+            <p>If you have any questions or need help, feel free to reach out to our support team.</p>
+
+            <p>Happy learning! 📖✨</p>
           </div>
           <div class="footer">
-            <p>© 2024 AI Doubt Solver. All rights reserved.</p>
+            <p>© 2024 DoubtNix. All rights reserved.</p>
+            <p>Thank you for choosing DoubtNix for your learning journey!</p>
           </div>
         </div>
       </body>
@@ -148,86 +160,40 @@ class EmailService {
 
     const text = `
       Welcome to DoubtNix!
-      
+
       Hi ${user.firstName},
-      
-      Thank you for signing up! Please verify your email address by visiting:
-      ${verificationUrl}
-      
-      This link will expire in 24 hours.
-      
-      If you didn't create an account with us, please ignore this email.
+
+      Welcome to DoubtNix! We're excited to have you on board. 🚀
+
+      Your account has been successfully created and you can now start using our AI-powered platform to solve your doubts instantly!
+
+      What you can do:
+      - 📄 Upload PDF, DOCX, and image files
+      - ❓ Ask questions about your documents
+      - 💬 Get instant AI-powered answers
+      - 📚 Manage your conversation history
+      - 🔒 Secure 2FA authentication
+
+      Ready to get started? Simply log in to your account and upload your first document!
+
+      If you have any questions or need help, feel free to reach out to our support team.
+
+      Happy learning! 📖✨
+
+      © 2024 DoubtNix. All rights reserved.
     `;
 
     return this.sendEmail({
       to: user.email,
-      subject: 'Verify Your Email - AI Doubt Solver',
+      subject: '🎉 Welcome to DoubtNix - Let\'s Get Started!',
       html,
       text
     });
   }
 
-  async sendPasswordResetEmail(user, resetToken) {
-    const frontendUrl = this.getFrontendUrl();
-    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
-    
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Reset Your Password</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #EF4444; color: white; padding: 20px; text-align: center; }
-          .content { padding: 20px; background: #f9f9f9; }
-          .button { display: inline-block; background: #EF4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-          .footer { padding: 20px; text-align: center; color: #666; font-size: 14px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Password Reset Request</h1>
-          </div>
-          <div class="content">
-            <h2>Hi ${user.firstName},</h2>
-            <p>We received a request to reset your password for your AI Doubt Solver account.</p>
-            <a href="${resetUrl}" class="button">Reset Password</a>
-            <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
-            <p><a href="${resetUrl}">${resetUrl}</a></p>
-            <p>This reset link will expire in 1 hour.</p>
-            <p>If you didn't request a password reset, please ignore this email. Your password will remain unchanged.</p>
-          </div>
-          <div class="footer">
-            <p>© 2024 AI Doubt Solver. All rights reserved.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+  // Email verification removed - users are auto-verified on signup
 
-    const text = `
-      Password Reset Request
-      
-      Hi ${user.firstName},
-      
-      We received a request to reset your password. Click the link below to reset it:
-      ${resetUrl}
-      
-      This link will expire in 1 hour.
-      
-      If you didn't request this, please ignore this email.
-    `;
-
-    return this.sendEmail({
-      to: user.email,
-      subject: 'Reset Your Password - AI Doubt Solver',
-      html,
-      text
-    });
-  }
+  // Password reset email with link removed - using OTP-based reset instead
 
   async sendLoginOTP(user, otp) {
     const html = `
@@ -253,7 +219,7 @@ class EmailService {
           </div>
           <div class="content">
             <h2>Hi ${user.firstName},</h2>
-            <p>We received a login request for your AI Doubt Solver account. Please use the verification code below to complete your login:</p>
+            <p>We received a login request for your DoubtNix account. Please use the verification code below to complete your login:</p>
 
             <div class="otp-code">${otp}</div>
 
@@ -266,7 +232,7 @@ class EmailService {
             <p>For your security, never share this code with anyone.</p>
           </div>
           <div class="footer">
-            <p>© 2024 AI Doubt Solver. All rights reserved.</p>
+            <p>© 2024 DoubtNix. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -278,7 +244,7 @@ class EmailService {
 
       Hi ${user.firstName},
 
-      We received a login request for your AI Doubt Solver account.
+      We received a login request for your DoubtNix account.
 
       Your verification code is: ${otp}
 
@@ -291,7 +257,7 @@ class EmailService {
 
     return this.sendEmail({
       to: user.email,
-      subject: 'Login Verification Code - AI Doubt Solver',
+      subject: 'Login Verification Code - DoubtNix',
       html,
       text
     });
@@ -321,7 +287,7 @@ class EmailService {
           </div>
           <div class="content">
             <h2>Hi ${user.firstName},</h2>
-            <p>We received a request to reset your password for your AI Doubt Solver account. Please use the verification code below to proceed:</p>
+            <p>We received a request to reset your password for your DoubtNix account. Please use the verification code below to proceed:</p>
 
             <div class="otp-code">${otp}</div>
 
@@ -334,7 +300,7 @@ class EmailService {
             <p>For your security, never share this code with anyone.</p>
           </div>
           <div class="footer">
-            <p>© 2024 AI Doubt Solver. All rights reserved.</p>
+            <p>© 2024 DoubtNix. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -346,7 +312,7 @@ class EmailService {
 
       Hi ${user.firstName},
 
-      We received a request to reset your password for your AI Doubt Solver account.
+      We received a request to reset your password for your DoubtNix account.
 
       Your verification code is: ${otp}
 
@@ -359,7 +325,7 @@ class EmailService {
 
     return this.sendEmail({
       to: user.email,
-      subject: 'Password Reset Verification Code - AI Doubt Solver',
+      subject: 'Password Reset Verification Code - DoubtNix',
       html,
       text
     });
@@ -387,12 +353,12 @@ class EmailService {
           </div>
           <div class="content">
             <h2>Hi ${user.firstName},</h2>
-            <p>Two-factor authentication has been successfully enabled on your AI Doubt Solver account.</p>
+            <p>Two-factor authentication has been successfully enabled on your DoubtNix account.</p>
             <p>Your account is now more secure! You'll need to enter a verification code from your authenticator app each time you log in.</p>
             <p>If you didn't enable this feature, please contact our support team immediately.</p>
           </div>
           <div class="footer">
-            <p>© 2024 AI Doubt Solver. All rights reserved.</p>
+            <p>© 2024 DoubtNix. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -401,7 +367,7 @@ class EmailService {
 
     return this.sendEmail({
       to: user.email,
-      subject: 'Two-Factor Authentication Enabled - AI Doubt Solver',
+      subject: 'Two-Factor Authentication Enabled - DoubtNix',
       html,
       text: `Hi ${user.firstName}, Two-factor authentication has been enabled on your account.`
     });

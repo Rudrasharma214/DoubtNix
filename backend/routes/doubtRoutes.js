@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const doubtController = require('../controllers/doubtController');
+const { authenticate } = require('../middleware/auth');
 
 // Validation middleware for asking doubts
 const validateDoubtRequest = [
@@ -22,19 +23,19 @@ const validateDoubtRequest = [
     .withMessage('Session ID must be between 1 and 100 characters')
 ];
 
-// Ask a doubt about a document
-router.post('/ask', validateDoubtRequest, doubtController.askDoubt);
+// Ask a doubt about a document (requires authentication)
+router.post('/ask', authenticate, validateDoubtRequest, doubtController.askDoubt);
 
-// Get conversation history
-router.get('/conversation/:documentId/:sessionId', doubtController.getConversationHistory);
+// Get conversation history (requires authentication)
+router.get('/conversation/:documentId/:sessionId', authenticate, doubtController.getConversationHistory);
 
-// Get all conversations for a document
-router.get('/conversations/:documentId', doubtController.getDocumentConversations);
+// Get all conversations for a document (requires authentication)
+router.get('/conversations/:documentId', authenticate, doubtController.getDocumentConversations);
 
-// Clear conversation
-router.delete('/conversation/:conversationId', doubtController.clearConversation);
+// Clear conversation (requires authentication)
+router.delete('/conversation/:conversationId', authenticate, doubtController.clearConversation);
 
-// Get suggested questions for a document
-router.get('/suggestions/:documentId', doubtController.getSuggestedQuestions);
+// Get suggested questions for a document (requires authentication)
+router.get('/suggestions/:documentId', authenticate, doubtController.getSuggestedQuestions);
 
 module.exports = router;
